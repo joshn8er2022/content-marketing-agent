@@ -114,10 +114,13 @@ class DSPyContentAgent:
     """Optimized DSPy-powered content marketing agent"""
     
     def __init__(self):
-        # Initialize DSPy with OpenAI
+        # Initialize DSPy with OpenAI (updated API)
         openai_key = self._get_api_key("OPENAI_API_KEY")
         if openai_key:
-            dspy.settings.configure(lm=dspy.OpenAI(model="gpt-3.5-turbo", api_key=openai_key))
+            import os
+            os.environ["OPENAI_API_KEY"] = openai_key
+            lm = dspy.LM(model="gpt-3.5-turbo", api_key=openai_key)
+            dspy.settings.configure(lm=lm)
         
         # Initialize DSPy modules for AI-heavy operations only
         self.trend_analyzer = dspy.ChainOfThought(TrendAnalyzer)
