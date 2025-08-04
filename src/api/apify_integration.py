@@ -903,70 +903,243 @@ class ApifyTrendAnalyzer:
         try:
             print("🎯 Testing official Apify actors...")
             
-            # Try the web scraper first (most likely to work on starter plan)
+            # First try Twitter scraper for REAL social media data
+            print("🐦 Trying Twitter scraper for real social media data...")
+            twitter_data = await self._scrape_real_twitter_data(user_interests + expertise_areas)
+            
+            if twitter_data:
+                print(f"✅ Got {len(twitter_data)} real tweets!")
+                
+                # Process Twitter data into trending topics
+                trending_topics = self._process_twitter_data_to_trends(twitter_data, user_interests, expertise_areas)
+                
+                return {
+                    "trending_topics": trending_topics,
+                    "content_opportunities": self._identify_content_opportunities(
+                        trending_topics, user_interests, expertise_areas
+                    ),
+                    "competitor_insights": self._analyze_twitter_competitor_insights(twitter_data),
+                    "data_sources": {
+                        "twitter_tweets": len(twitter_data),
+                        "real_social_media": True
+                    },
+                    "analysis_timestamp": datetime.now().isoformat(),
+                    "data_source": "real_twitter_data"
+                }
+            
+            # Fallback to web scraper if Twitter fails
+            print("📡 Falling back to web scraper...")
             web_scraper_id = "apify/web-scraper"
             
-            # Test if we can access the web scraper
             try:
-                actor = self.official_client.actor(web_scraper_id)
-                
-                # Simple test run to scrape a trends website
-                run_input = {
-                    "startUrls": [{"url": "https://example.com"}],
-                    "maxRequestsPerCrawl": 1,
-                    "pageFunction": "async function pageFunction(context) { return { title: context.page.title() }; }"
-                }
-                
-                print(f"🧪 Testing {web_scraper_id}...")
-                run = actor.call(run_input=run_input, timeout_secs=30)
-                
-                if run:
-                    print("✅ Official Apify client working!")
+                if self.official_client:
+                    actor = self.official_client.actor(web_scraper_id)
                     
-                    # Now try to get real trend data using web scraper
-                    trend_data = await self._scrape_trends_with_web_scraper(user_interests, expertise_areas)
+                    # Simple test run
+                    run_input = {
+                        "startUrls": [{"url": "https://example.com"}],
+                        "maxRequestsPerCrawl": 1,
+                        "pageFunction": "async function pageFunction(context) { return { title: context.page.title() }; }"
+                    }
                     
-                    if trend_data:
-                        return {
-                            "trending_topics": trend_data,
-                            "content_opportunities": self._identify_content_opportunities(
-                                trend_data, user_interests, expertise_areas
-                            ),
-                            "competitor_insights": self._get_real_competitor_insights(),
-                            "data_sources": {
-                                "apify_web_scraper": len(trend_data),
-                                "official_client": True
-                            },
-                            "analysis_timestamp": datetime.now().isoformat(),
-                            "data_source": "apify_official_client"
-                        }
+                    print(f"🧪 Testing {web_scraper_id}...")
+                    run = actor.call(run_input=run_input, timeout_secs=30)
+                    
+                    if run:
+                        print("✅ Web scraper working as fallback!")
+                        
+                        # Get enhanced trend data
+                        trend_data = await self._scrape_trends_with_web_scraper(user_interests, expertise_areas)
+                        
+                        if trend_data:
+                            return {
+                                "trending_topics": trend_data,
+                                "content_opportunities": self._identify_content_opportunities(
+                                    trend_data, user_interests, expertise_areas
+                                ),
+                                "competitor_insights": self._get_real_competitor_insights(),
+                                "data_sources": {
+                                    "apify_web_scraper": len(trend_data),
+                                    "official_client": True
+                                },
+                                "analysis_timestamp": datetime.now().isoformat(),
+                                "data_source": "apify_web_scraper"
+                            }
                 
             except Exception as e:
-                print(f"❌ Web scraper test failed: {e}")
-            
-            # Try other actors if web scraper doesn't work
-            for actor_name, actor_id in self.actors.items():
-                if actor_name == "web_scraper":
-                    continue
-                    
-                try:
-                    print(f"🧪 Testing {actor_name} ({actor_id})...")
-                    actor = self.official_client.actor(actor_id)
-                    
-                    # Just check if we can access the actor (don't run it yet)
-                    actor_info = actor.get()
-                    if actor_info:
-                        print(f"✅ {actor_name} is accessible!")
-                        # Could implement specific scraping logic here
-                    
-                except Exception as e:
-                    print(f"❌ {actor_name} failed: {e}")
+                print(f"❌ Web scraper fallback failed: {e}")
             
             return None
             
         except Exception as e:
             print(f"❌ Official Apify client failed: {e}")
             return None
+
+    async def _scrape_real_twitter_data(self, search_terms: List[str]) -> List[Dict]:
+        """Scrape real Twitter data using Apify Twitter scraper"""
+        
+        try:
+            print("🐦 Scraping real Twitter data...")
+            
+            # Use the Twitter scraper actor
+            twitter_actor_id = "apidojo~twitter-scraper-lite"
+            
+            # Prepare search terms (limit to avoid rate limits)
+            limited_terms = search_terms[:3]  # Use top 3 terms
+            
+            twitter_input = {
+                "searchTerms": limited_terms,
+                "sort": "Latest",
+                "maxItems": 15,  # Reasonable limit
+                "start": "2025-08-01",
+                "end": "2025-08-04"
+            }
+            
+            print(f"🔍 Searching Twitter for: {limited_terms}")
+            
+            # Use httpx for direct API call
+            import httpx
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"https://api.apify.com/v2/acts/{twitter_actor_id}/run-sync-get-dataset-items?token={self.api_token}",
+                    headers={'Content-Type': 'application/json'},
+                    json=twitter_input
+                )
+                
+                if response.status_code in [200, 201]:
+                    tweets = response.json()
+                    
+                    if isinstance(tweets, list) and tweets:
+                        print(f"✅ Got {len(tweets)} real tweets!")
+                        return tweets
+                    else:
+                        print("⚠️ No tweets returned")
+                        return []
+                else:
+                    print(f"❌ Twitter scraper failed: {response.status_code}")
+                    return []
+                    
+        except Exception as e:
+            print(f"❌ Twitter scraping failed: {e}")
+            return []
+    
+    def _process_twitter_data_to_trends(self, tweets: List[Dict], user_interests: List[str], expertise_areas: List[str]) -> List[Dict]:
+        """Process real Twitter data into trending topics format"""
+        
+        trending_topics = []
+        hashtag_counts = {}
+        
+        for tweet in tweets:
+            # Extract engagement metrics
+            likes = tweet.get('likeCount', 0)
+            retweets = tweet.get('retweetCount', 0)
+            replies = tweet.get('replyCount', 0)
+            
+            # Calculate engagement score
+            engagement_score = likes + (retweets * 3) + (replies * 2)
+            
+            # Extract hashtags
+            entities = tweet.get('entities', {})
+            hashtags = []
+            if 'hashtags' in entities:
+                hashtags = [tag.get('text', '') for tag in entities['hashtags']]
+            
+            # Count hashtags for trending analysis
+            for hashtag in hashtags:
+                if hashtag:
+                    hashtag_counts[hashtag] = hashtag_counts.get(hashtag, 0) + 1
+            
+            # Create trend entry for the tweet topic
+            tweet_text = tweet.get('text', '')
+            if tweet_text:
+                # Extract main topic from tweet
+                topic = tweet_text[:50] + "..." if len(tweet_text) > 50 else tweet_text
+                
+                trending_topics.append({
+                    "topic": topic,
+                    "platform": "twitter",
+                    "engagement_score": min(engagement_score / 100, 100),  # Normalize to 0-100
+                    "relevance_score": self._calculate_relevance(tweet_text, user_interests, expertise_areas),
+                    "source_data": {
+                        "tweet_id": tweet.get('id'),
+                        "author": tweet.get('author', {}).get('userName', 'unknown'),
+                        "likes": likes,
+                        "retweets": retweets,
+                        "replies": replies,
+                        "hashtags": hashtags,
+                        "created_at": tweet.get('createdAt'),
+                        "url": tweet.get('url')
+                    },
+                    "data_source": "real_twitter"
+                })
+        
+        # Add trending hashtags as separate topics
+        for hashtag, count in sorted(hashtag_counts.items(), key=lambda x: x[1], reverse=True)[:5]:
+            trending_topics.append({
+                "topic": f"#{hashtag}",
+                "platform": "twitter_hashtag",
+                "engagement_score": min(count * 10, 100),  # Scale hashtag frequency
+                "relevance_score": self._calculate_relevance(hashtag, user_interests, expertise_areas),
+                "source_data": {
+                    "hashtag": hashtag,
+                    "mention_count": count,
+                    "source": "real_twitter_hashtags"
+                },
+                "data_source": "real_twitter"
+            })
+        
+        # Sort by relevance and engagement
+        return sorted(
+            trending_topics,
+            key=lambda x: (x['relevance_score'] * x['engagement_score']),
+            reverse=True
+        )[:10]  # Return top 10
+    
+    def _analyze_twitter_competitor_insights(self, tweets: List[Dict]) -> Dict[str, Any]:
+        """Analyze real Twitter data for competitor insights"""
+        
+        if not tweets:
+            return self._get_real_competitor_insights()
+        
+        # Analyze real Twitter data
+        total_tweets = len(tweets)
+        total_likes = sum(tweet.get('likeCount', 0) for tweet in tweets)
+        total_retweets = sum(tweet.get('retweetCount', 0) for tweet in tweets)
+        total_replies = sum(tweet.get('replyCount', 0) for tweet in tweets)
+        
+        # Extract all hashtags
+        all_hashtags = []
+        for tweet in tweets:
+            entities = tweet.get('entities', {})
+            if 'hashtags' in entities:
+                hashtags = [tag.get('text', '') for tag in entities['hashtags']]
+                all_hashtags.extend(hashtags)
+        
+        # Count hashtag frequency
+        hashtag_counts = {}
+        for hashtag in all_hashtags:
+            if hashtag:
+                hashtag_counts[hashtag] = hashtag_counts.get(hashtag, 0) + 1
+        
+        top_hashtags = sorted(hashtag_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+        
+        return {
+            "insights": [
+                f"Analyzed {total_tweets} real tweets from Twitter",
+                f"Average engagement: {(total_likes + total_retweets + total_replies) / total_tweets:.1f} per tweet" if total_tweets > 0 else "No engagement data",
+                f"Most retweeted content gets {max([tweet.get('retweetCount', 0) for tweet in tweets]) if tweets else 0} retweets",
+                f"Top performing tweets use {len(set(all_hashtags))} unique hashtags"
+            ],
+            "top_hashtags": [{"hashtag": f"#{tag}", "count": count} for tag, count in top_hashtags],
+            "engagement_metrics": {
+                "total_tweets": total_tweets,
+                "total_likes": total_likes,
+                "total_retweets": total_retweets,
+                "total_replies": total_replies,
+                "avg_engagement": (total_likes + total_retweets + total_replies) / total_tweets if total_tweets > 0 else 0
+            },
+            "data_source": "real_twitter_analysis"
+        }
     
     async def _scrape_trends_with_web_scraper(self, user_interests: List[str], expertise_areas: List[str]) -> List[Dict]:
         """Use Apify web scraper to get real trend data"""
