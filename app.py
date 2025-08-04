@@ -164,7 +164,7 @@ def main():
         st.sidebar.markdown("---")
         page = st.sidebar.selectbox(
             "Navigate to:",
-            ["📊 Dashboard", "💬 Chat Assistant", "✍️ Create Content", "📈 Trend Analysis"]
+            ["📊 Dashboard", "💬 Chat Assistant", "✍️ Create Content", "📈 Trend Analysis", "🔗 Connect Social Media"]
         )
         
         if st.sidebar.button("🔄 Reset Profile"):
@@ -180,6 +180,8 @@ def main():
             render_content_creation(profile, agent, helpers)
         elif page == "📈 Trend Analysis":
             render_trend_analysis(profile, agent, helpers)
+        elif page == "🔗 Connect Social Media":
+            render_social_media_connections(profile, agent, helpers)
 
 
 def render_dashboard(profile, agent, helpers):
@@ -746,6 +748,466 @@ def render_trend_analysis(profile, agent, helpers):
             - Consider time zones for posting
             - Adapt content for bilingual audiences
             """)
+
+def render_social_media_connections(profile, agent, helpers):
+    """Render the social media connections interface"""
+    
+    st.markdown("## 🔗 Connect to Real Social Media Data")
+    st.markdown("Connect your Content Marketing Agent to real social media platforms for authentic trend analysis")
+    
+    # Initialize session state for connections
+    if 'social_connections' not in st.session_state:
+        st.session_state.social_connections = {
+            'twitter_enabled': False,
+            'tiktok_enabled': False,
+            'youtube_enabled': False,
+            'last_data_source': 'enhanced_fallback'
+        }
+    
+    # Current connection status
+    st.markdown("### 📊 Current Data Source Status")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        twitter_status = "🟢 Connected" if st.session_state.social_connections['twitter_enabled'] else "🔴 Disconnected"
+        st.metric("Twitter Data", twitter_status)
+    
+    with col2:
+        tiktok_status = "🟢 Connected" if st.session_state.social_connections['tiktok_enabled'] else "🔴 Disconnected"
+        st.metric("TikTok Data", tiktok_status)
+    
+    with col3:
+        youtube_status = "🟢 Connected" if st.session_state.social_connections['youtube_enabled'] else "🔴 Disconnected"
+        st.metric("YouTube Data", youtube_status)
+    
+    # Show current data source
+    current_source = st.session_state.social_connections.get('last_data_source', 'enhanced_fallback')
+    if current_source == 'real_twitter_data':
+        st.success("✅ Currently using REAL Twitter data for trend analysis")
+    elif current_source == 'real_tiktok_data':
+        st.success("✅ Currently using REAL TikTok data for trend analysis")
+    elif current_source == 'real_youtube_data':
+        st.success("✅ Currently using REAL YouTube data for trend analysis")
+    elif current_source == 'real_multi_platform':
+        st.success("✅ Currently using REAL multi-platform data for trend analysis")
+    else:
+        st.warning("⚠️ Currently using enhanced sample data - connect to social media for real trends")
+    
+    st.markdown("---")
+    
+    # Twitter Connection
+    st.markdown("### 🐦 Twitter Connection")
+    st.markdown("Connect to Twitter to get real tweets, hashtags, and engagement metrics")
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.markdown("**What you'll get:**")
+        st.markdown("- Real tweets with actual engagement metrics")
+        st.markdown("- Trending hashtags with usage counts")
+        st.markdown("- Authentic user interactions and mentions")
+        st.markdown("- Live social media sentiment analysis")
+    
+    with col2:
+        if st.button("🔗 Connect Twitter", type="primary", use_container_width=True):
+            with st.spinner("Testing Twitter connection..."):
+                twitter_result = run_async(test_twitter_connection(profile))
+                if twitter_result:
+                    st.session_state.social_connections['twitter_enabled'] = True
+                    st.session_state.social_connections['last_data_source'] = 'real_twitter_data'
+                    st.success("✅ Twitter connected successfully!")
+                    st.rerun()
+                else:
+                    st.error("❌ Twitter connection failed")
+        
+        if st.session_state.social_connections['twitter_enabled']:
+            if st.button("🔄 Test Twitter Data", use_container_width=True):
+                with st.spinner("Fetching real Twitter data..."):
+                    twitter_test = run_async(test_twitter_data_fetch(profile))
+                    if twitter_test:
+                        st.success(f"✅ Got {twitter_test.get('tweet_count', 0)} real tweets!")
+                        with st.expander("📊 Sample Twitter Data"):
+                            for i, tweet in enumerate(twitter_test.get('sample_tweets', [])[:3], 1):
+                                st.write(f"**Tweet {i}:** {tweet.get('text', 'No text')[:100]}...")
+                                st.write(f"👤 @{tweet.get('author', 'unknown')} | ❤️ {tweet.get('likes', 0)} | 🔄 {tweet.get('retweets', 0)}")
+    
+    st.markdown("---")
+    
+    # TikTok Connection
+    st.markdown("### 🎵 TikTok Connection")
+    st.markdown("Connect to TikTok to get viral videos, trending sounds, and hashtag performance")
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.markdown("**What you'll get:**")
+        st.markdown("- Viral TikTok videos with view counts")
+        st.markdown("- Trending hashtags and challenges")
+        st.markdown("- Popular sounds and music trends")
+        st.markdown("- Creator engagement patterns")
+    
+    with col2:
+        if st.button("🔗 Connect TikTok", type="primary", use_container_width=True):
+            with st.spinner("Testing TikTok connection..."):
+                tiktok_result = run_async(test_tiktok_connection(profile))
+                if tiktok_result:
+                    st.session_state.social_connections['tiktok_enabled'] = True
+                    st.session_state.social_connections['last_data_source'] = 'real_tiktok_data'
+                    st.success("✅ TikTok connected successfully!")
+                    st.rerun()
+                else:
+                    st.error("❌ TikTok connection failed")
+        
+        if st.session_state.social_connections['tiktok_enabled']:
+            if st.button("🔄 Test TikTok Data", use_container_width=True):
+                with st.spinner("Fetching real TikTok data..."):
+                    tiktok_test = run_async(test_tiktok_data_fetch(profile))
+                    if tiktok_test:
+                        st.success(f"✅ Got {tiktok_test.get('video_count', 0)} real TikTok videos!")
+                        with st.expander("📊 Sample TikTok Data"):
+                            for i, video in enumerate(tiktok_test.get('sample_videos', [])[:3], 1):
+                                st.write(f"**Video {i}:** {video.get('text', 'No description')[:100]}...")
+                                st.write(f"👤 @{video.get('author', 'unknown')} | ❤️ {video.get('likes', 0)} | 👁️ {video.get('views', 0)}")
+    
+    st.markdown("---")
+    
+    # YouTube Connection
+    st.markdown("### 🎥 YouTube Connection")
+    st.markdown("Connect to YouTube to get trending videos, popular channels, and content insights")
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.markdown("**What you'll get:**")
+        st.markdown("- Trending YouTube videos with view counts")
+        st.markdown("- Popular channel content strategies")
+        st.markdown("- Video engagement metrics and comments")
+        st.markdown("- Content topic performance analysis")
+    
+    with col2:
+        if st.button("🔗 Connect YouTube", type="primary", use_container_width=True):
+            with st.spinner("Testing YouTube connection..."):
+                youtube_result = run_async(test_youtube_connection(profile))
+                if youtube_result:
+                    st.session_state.social_connections['youtube_enabled'] = True
+                    st.session_state.social_connections['last_data_source'] = 'real_youtube_data'
+                    st.success("✅ YouTube connected successfully!")
+                    st.rerun()
+                else:
+                    st.error("❌ YouTube connection failed")
+        
+        if st.session_state.social_connections['youtube_enabled']:
+            if st.button("🔄 Test YouTube Data", use_container_width=True):
+                with st.spinner("Fetching real YouTube data..."):
+                    youtube_test = run_async(test_youtube_data_fetch(profile))
+                    if youtube_test:
+                        st.success(f"✅ Got {youtube_test.get('video_count', 0)} real YouTube videos!")
+                        with st.expander("📊 Sample YouTube Data"):
+                            for i, video in enumerate(youtube_test.get('sample_videos', [])[:3], 1):
+                                st.write(f"**Video {i}:** {video.get('title', 'No title')[:100]}...")
+                                st.write(f"📺 {video.get('channel', 'unknown')} | 👁️ {video.get('views', 0)} | ❤️ {video.get('likes', 0)}")
+    
+    st.markdown("---")
+    
+    # Multi-Platform Connection
+    st.markdown("### 🌐 Multi-Platform Analysis")
+    
+    if any([st.session_state.social_connections['twitter_enabled'], 
+            st.session_state.social_connections['tiktok_enabled'], 
+            st.session_state.social_connections['youtube_enabled']]):
+        
+        if st.button("🚀 Run Multi-Platform Analysis", type="primary", use_container_width=True):
+            with st.spinner("Analyzing trends across all connected platforms..."):
+                multi_result = run_async(run_multi_platform_analysis(profile))
+                if multi_result:
+                    st.session_state.social_connections['last_data_source'] = 'real_multi_platform'
+                    st.success("✅ Multi-platform analysis complete!")
+                    
+                    # Show results
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        st.metric("Total Data Points", multi_result.get('total_data_points', 0))
+                    
+                    with col2:
+                        st.metric("Trending Topics", len(multi_result.get('trending_topics', [])))
+                    
+                    with col3:
+                        st.metric("Platforms", multi_result.get('platforms_used', 0))
+                    
+                    # Show top trends
+                    if multi_result.get('trending_topics'):
+                        st.markdown("### 🔥 Top Cross-Platform Trends")
+                        for i, topic in enumerate(multi_result['trending_topics'][:5], 1):
+                            with st.expander(f"{i}. {topic.get('topic', 'Unknown')} ({topic.get('platform', 'multi')})"):
+                                col1, col2 = st.columns(2)
+                                with col1:
+                                    st.metric("Engagement Score", f"{topic.get('engagement_score', 0):.1f}%")
+                                with col2:
+                                    st.metric("Relevance Score", f"{topic.get('relevance_score', 0):.1f}/10")
+                                
+                                if topic.get('source_data'):
+                                    st.json(topic['source_data'])
+    else:
+        st.info("💡 Connect to at least one social media platform to enable multi-platform analysis")
+    
+    # Data Source Information
+    st.markdown("---")
+    st.markdown("### ℹ️ Data Source Information")
+    
+    with st.expander("🔍 How Real Data Collection Works"):
+        st.markdown("""
+        **Real Social Media Data Collection:**
+        
+        🐦 **Twitter:** Uses Apify's Twitter scraper to collect:
+        - Recent tweets matching your expertise areas
+        - Real engagement metrics (likes, retweets, replies)
+        - Trending hashtags with usage counts
+        - User mentions and interactions
+        
+        🎵 **TikTok:** Uses Apify's TikTok scraper to collect:
+        - Viral videos in your niche
+        - Hashtag performance and trends
+        - Creator engagement patterns
+        - Popular sounds and music
+        
+        🎥 **YouTube:** Uses Apify's YouTube scraper to collect:
+        - Trending videos by topic
+        - Channel performance metrics
+        - Video engagement data
+        - Content strategy insights
+        
+        **Privacy & Ethics:**
+        - Only public data is collected
+        - No personal information is stored
+        - Data is used only for trend analysis
+        - Complies with platform terms of service
+        """)
+    
+    with st.expander("⚙️ Technical Details"):
+        st.markdown(f"""
+        **Current Configuration:**
+        - Apify API Token: {'✅ Connected' if get_api_key('APIFY_API_TOKEN') else '❌ Not configured'}
+        - Twitter Scraper: apidojo~twitter-scraper-lite
+        - TikTok Scraper: clockworks~tiktok-scraper
+        - YouTube Scraper: streamers~youtube-scraper
+        
+        **Data Processing:**
+        - Real-time trend analysis with DSPy AI
+        - Cultural adaptation for {profile.get('cultural_background', 'your region')}
+        - Multi-language support ({profile.get('primary_language', 'en')})
+        - Platform-specific optimization
+        """)
+
+
+# Async helper functions for social media connections
+async def test_twitter_connection(profile):
+    """Test Twitter connection"""
+    try:
+        from api.apify_integration import ApifyTrendAnalyzer
+        analyzer = ApifyTrendAnalyzer()
+        
+        # Test with a simple search
+        twitter_data = await analyzer._scrape_real_twitter_data(['test'])
+        return len(twitter_data) > 0
+    except Exception as e:
+        print(f"Twitter connection test failed: {e}")
+        return False
+
+
+async def test_twitter_data_fetch(profile):
+    """Fetch sample Twitter data"""
+    try:
+        from api.apify_integration import ApifyTrendAnalyzer
+        analyzer = ApifyTrendAnalyzer()
+        
+        # Get real Twitter data
+        twitter_data = await analyzer._scrape_real_twitter_data(
+            profile.get('expertise_areas', ['business'])
+        )
+        
+        return {
+            'tweet_count': len(twitter_data),
+            'sample_tweets': [
+                {
+                    'text': tweet.get('text', ''),
+                    'author': tweet.get('author', {}).get('userName', 'unknown'),
+                    'likes': tweet.get('likeCount', 0),
+                    'retweets': tweet.get('retweetCount', 0)
+                }
+                for tweet in twitter_data[:3]
+            ]
+        }
+    except Exception as e:
+        print(f"Twitter data fetch failed: {e}")
+        return None
+
+
+async def test_tiktok_connection(profile):
+    """Test TikTok connection"""
+    try:
+        import httpx
+        api_token = get_api_key("APIFY_API_TOKEN")
+        
+        if not api_token:
+            return False
+        
+        # Test TikTok scraper
+        tiktok_input = {
+            "hashtags": ["business"],
+            "resultsPerPage": 1
+        }
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"https://api.apify.com/v2/acts/clockworks~tiktok-scraper/run-sync-get-dataset-items?token={api_token}",
+                headers={'Content-Type': 'application/json'},
+                json=tiktok_input
+            )
+            
+            return response.status_code in [200, 201]
+    except Exception as e:
+        print(f"TikTok connection test failed: {e}")
+        return False
+
+
+async def test_tiktok_data_fetch(profile):
+    """Fetch sample TikTok data"""
+    try:
+        import httpx
+        api_token = get_api_key("APIFY_API_TOKEN")
+        
+        # Get hashtags from expertise areas
+        hashtags = [area.replace(' ', '').lower() for area in profile.get('expertise_areas', ['business'])]
+        
+        tiktok_input = {
+            "hashtags": hashtags[:2],  # Limit to 2 hashtags
+            "resultsPerPage": 5
+        }
+        
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                f"https://api.apify.com/v2/acts/clockworks~tiktok-scraper/run-sync-get-dataset-items?token={api_token}",
+                headers={'Content-Type': 'application/json'},
+                json=tiktok_input
+            )
+            
+            if response.status_code in [200, 201]:
+                videos = response.json()
+                
+                return {
+                    'video_count': len(videos),
+                    'sample_videos': [
+                        {
+                            'text': video.get('text', ''),
+                            'author': video.get('authorMeta', {}).get('name', 'unknown'),
+                            'likes': video.get('diggCount', 0),
+                            'views': video.get('playCount', 0)
+                        }
+                        for video in videos[:3]
+                    ]
+                }
+            else:
+                return None
+    except Exception as e:
+        print(f"TikTok data fetch failed: {e}")
+        return None
+
+
+async def test_youtube_connection(profile):
+    """Test YouTube connection"""
+    try:
+        import httpx
+        api_token = get_api_key("APIFY_API_TOKEN")
+        
+        if not api_token:
+            return False
+        
+        # Test YouTube scraper
+        youtube_input = {
+            "searchQueries": ["business"],
+            "maxResults": 1
+        }
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"https://api.apify.com/v2/acts/streamers~youtube-scraper/run-sync-get-dataset-items?token={api_token}",
+                headers={'Content-Type': 'application/json'},
+                json=youtube_input
+            )
+            
+            return response.status_code in [200, 201]
+    except Exception as e:
+        print(f"YouTube connection test failed: {e}")
+        return False
+
+
+async def test_youtube_data_fetch(profile):
+    """Fetch sample YouTube data"""
+    try:
+        import httpx
+        api_token = get_api_key("APIFY_API_TOKEN")
+        
+        # Get search terms from expertise areas
+        search_terms = profile.get('expertise_areas', ['business'])
+        
+        youtube_input = {
+            "searchQueries": search_terms[:2],  # Limit to 2 search terms
+            "maxResults": 5
+        }
+        
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                f"https://api.apify.com/v2/acts/streamers~youtube-scraper/run-sync-get-dataset-items?token={api_token}",
+                headers={'Content-Type': 'application/json'},
+                json=youtube_input
+            )
+            
+            if response.status_code in [200, 201]:
+                videos = response.json()
+                
+                return {
+                    'video_count': len(videos),
+                    'sample_videos': [
+                        {
+                            'title': video.get('title', ''),
+                            'channel': video.get('channelName', 'unknown'),
+                            'views': video.get('viewCount', 0),
+                            'likes': video.get('likeCount', 0)
+                        }
+                        for video in videos[:3]
+                    ]
+                }
+            else:
+                return None
+    except Exception as e:
+        print(f"YouTube data fetch failed: {e}")
+        return None
+
+
+async def run_multi_platform_analysis(profile):
+    """Run analysis across all connected platforms"""
+    try:
+        from api.apify_integration import ApifyTrendAnalyzer
+        analyzer = ApifyTrendAnalyzer()
+        
+        # Run comprehensive analysis
+        result = await analyzer.comprehensive_trend_analysis(
+            user_interests=profile.get('expertise_areas', ['business']),
+            expertise_areas=profile.get('expertise_areas', ['business']),
+            cultural_context=profile.get('cultural_background', 'cameroon')
+        )
+        
+        return {
+            'total_data_points': sum(result.get('data_sources', {}).values()),
+            'trending_topics': result.get('trending_topics', []),
+            'platforms_used': len([k for k, v in result.get('data_sources', {}).items() if v > 0])
+        }
+    except Exception as e:
+        print(f"Multi-platform analysis failed: {e}")
+        return None
+
 
 if __name__ == "__main__":
     main()
