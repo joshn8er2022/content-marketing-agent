@@ -24,15 +24,31 @@ def get_api_key(key_name):
     except:
         return os.getenv(key_name, "")
 
-# Initialize the DSPy agent
+# Initialize the DSPy agent (AI-heavy operations only)
 @st.cache_resource
 def get_dspy_agent():
-    """Initialize and cache the DSPy agent"""
+    """Initialize and cache the DSPy agent for AI operations"""
     try:
         from agents.dspy_agent import DSPyContentAgent
         return DSPyContentAgent()
     except Exception as e:
         st.error(f"Error initializing DSPy agent: {e}")
+        return None
+
+# Initialize content helpers (simple Python utilities)
+@st.cache_resource
+def get_content_helpers():
+    """Initialize content helper utilities"""
+    try:
+        from utils.content_helpers import ContentFormatter, PlatformOptimizer, TrendDataProcessor, ConversationHelper
+        return {
+            'formatter': ContentFormatter(),
+            'optimizer': PlatformOptimizer(),
+            'trend_processor': TrendDataProcessor(),
+            'conversation_helper': ConversationHelper()
+        }
+    except Exception as e:
+        st.error(f"Error initializing content helpers: {e}")
         return None
 
 # Async wrapper for Streamlit
@@ -68,8 +84,9 @@ def main():
     if 'current_trends' not in st.session_state:
         st.session_state.current_trends = None
     
-    # Initialize DSPy agent
+    # Initialize DSPy agent and content helpers
     agent = get_dspy_agent()
+    helpers = get_content_helpers()
     
     # Check if user has completed setup
     if st.session_state.user_profile is None:
@@ -156,16 +173,16 @@ def main():
         
         # Main content based on selected page
         if page == "📊 Dashboard":
-            render_dashboard(profile, agent)
+            render_dashboard(profile, agent, helpers)
         elif page == "💬 Chat Assistant":
-            render_chat_interface(profile, agent)
+            render_chat_interface(profile, agent, helpers)
         elif page == "✍️ Create Content":
-            render_content_creation(profile, agent)
+            render_content_creation(profile, agent, helpers)
         elif page == "📈 Trend Analysis":
-            render_trend_analysis(profile, agent)
+            render_trend_analysis(profile, agent, helpers)
 
 
-def render_dashboard(profile, agent):
+def render_dashboard(profile, agent, helpers):
     """Render the main dashboard"""
     
     st.markdown("## 📊 Dashboard Overview")
@@ -209,9 +226,12 @@ def render_dashboard(profile, agent):
             st.rerun()
     
     # Show current trends if available
-    if st.session_state.current_trends and agent:
+    if st.session_state.current_trends and helpers:
         st.markdown("## 📈 Current Trends Summary")
-        trend_summary = agent.get_trend_summary(st.session_state.current_trends)
+        # Use simple Python utility instead of DSPy for trend summary
+        trend_summary = helpers['trend_processor'].summarize_trends(
+            st.session_state.current_trends.get('trending_topics', [])
+        )
         st.markdown(trend_summary)
     
     # Recent content
@@ -230,8 +250,8 @@ def render_dashboard(profile, agent):
                     st.code(content['text'])
 
 
-def render_chat_interface(profile, agent):
-    """Render the chat interface"""
+def render_chat_interface(profile, agent, helpers):
+    """Render the enhanced chat interface with DSPy conversation management"""
     
     st.markdown("## 💬 Chat with Your Content Marketing Assistant")
     st.markdown("Ask me anything about content strategy, trends, or social media marketing!")
@@ -272,19 +292,31 @@ def render_chat_interface(profile, agent):
             'timestamp': datetime.now().isoformat()
         })
         
-        # Generate response
+        # Generate response using DSPy conversation management
         with st.spinner("Thinking..."):
-            if agent:
+            if agent and helpers:
                 try:
+                    # Use DSPy for intelligent response generation
                     response = run_async(agent.chat_response(
                         user_input, 
                         profile, 
                         st.session_state.chat_history
                     ))
+                    
+                    # Use simple utility to extract intent for follow-up suggestions
+                    intent = helpers['conversation_helper'].extract_intent(user_input)
+                    follow_ups = helpers['conversation_helper'].generate_follow_up_questions(intent, profile)
+                    
+                    # Add follow-up suggestions to response
+                    if follow_ups:
+                        response += f"\n\n**💡 You might also want to ask:**\n"
+                        for i, question in enumerate(follow_ups[:2], 1):
+                            response += f"{i}. {question}\n"
+                    
                 except Exception as e:
-                    response = f"I understand you're asking about: {user_input}\n\nBased on your expertise in {', '.join(profile.get('expertise_areas', ['personal development']))}, I'd recommend creating authentic content that showcases your knowledge. Would you like me to help you create some content around this topic?"
+                    response = helpers['conversation_helper'].generate_fallback_response(user_input, profile) if helpers else f"I understand you're asking about: {user_input}\n\nBased on your expertise, I'd recommend creating authentic content that showcases your knowledge."
             else:
-                response = "I'm here to help with your content marketing! Unfortunately, I'm having trouble accessing my full capabilities right now, but I can still assist you with basic content creation."
+                response = "I'm here to help with your content marketing! Let me know what you'd like to create or discuss."
         
         # Add assistant response to history
         st.session_state.chat_history.append({
@@ -328,8 +360,8 @@ def render_chat_interface(profile, agent):
             st.rerun()
 
 
-def render_content_creation(profile, agent):
-    """Render the enhanced content creation interface"""
+def render_content_creation(profile, agent, helpers):
+    """Render the enhanced content creation interface with DSPy and utilities"""
     
     st.markdown("## ✍️ AI-Powered Content Creation")
     st.markdown("Create trend-aware, culturally-relevant content using real-time data analysis")
@@ -347,10 +379,12 @@ def render_content_creation(profile, agent):
     else:
         st.success("✅ Using current trend data for content creation")
         
-        # Show trend summary
+        # Show trend summary using simple utility
         with st.expander("📈 Current Trends Summary"):
-            if agent:
-                trend_summary = agent.get_trend_summary(st.session_state.current_trends)
+            if helpers:
+                trend_summary = helpers['trend_processor'].summarize_trends(
+                    st.session_state.current_trends.get('trending_topics', [])
+                )
                 st.markdown(trend_summary)
         
     # Content creation form
@@ -395,22 +429,50 @@ def render_content_creation(profile, agent):
                             profile, platform, content_type, language, topic
                         ))
                         
-                        # Create content piece with rich metadata
-                        content_piece = {
-                            "id": f"content_{len(st.session_state.content_pieces) + 1}",
-                            "platform": platform,
-                            "content_type": content_type,
-                            "language": language,
-                            "text": content_result['content_text'],
-                            "hashtags": content_result.get('hashtags', []),
-                            "call_to_action": content_result.get('call_to_action', ''),
-                            "topic": topic or "AI Generated",
-                            "strategy": content_result.get('strategy', ''),
-                            "trending_topics": content_result.get('trending_topics', ''),
-                            "optimal_timing": content_result.get('optimal_timing', ''),
-                            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                            "trend_based": True
-                        }
+                        # Use simple utilities to format and enhance content
+                        if helpers:
+                            # Add cultural hashtags using utility
+                            hashtags = content_result.get('hashtags', [])
+                            hashtags = helpers['formatter'].add_cultural_hashtags(
+                                hashtags, profile.get('cultural_background', 'cameroon'), language
+                            )
+                            
+                            # Optimize hashtags for platform
+                            hashtags = helpers['optimizer'].optimize_hashtags_for_platform(hashtags, platform)
+                            
+                            # Format content piece using utility
+                            content_piece = helpers['formatter'].format_content_piece({
+                                "platform": platform,
+                                "content_type": content_type,
+                                "language": language,
+                                "text": content_result['content_text'],
+                                "hashtags": hashtags,
+                                "call_to_action": content_result.get('call_to_action', ''),
+                                "topic": topic or "AI Generated",
+                                "trend_based": True
+                            })
+                            
+                            # Add DSPy-generated insights
+                            content_piece.update({
+                                "strategy": content_result.get('strategy', ''),
+                                "engagement_tactics": content_result.get('engagement_tactics', ''),
+                                "trending_topics": content_result.get('trending_topics', ''),
+                                "cultural_insights": content_result.get('cultural_insights', '')
+                            })
+                        else:
+                            # Fallback formatting
+                            content_piece = {
+                                "id": f"content_{len(st.session_state.content_pieces) + 1}",
+                                "platform": platform,
+                                "content_type": content_type,
+                                "language": language,
+                                "text": content_result['content_text'],
+                                "hashtags": content_result.get('hashtags', []),
+                                "call_to_action": content_result.get('call_to_action', ''),
+                                "topic": topic or "AI Generated",
+                                "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                                "trend_based": True
+                            }
                         
                         st.session_state.content_pieces.append(content_piece)
                         st.success("✅ AI-powered content created with trend analysis!")
@@ -422,22 +484,37 @@ def render_content_creation(profile, agent):
                         with col1:
                             st.markdown("**Strategy Used:**")
                             st.write(content_result.get('strategy', 'Standard content strategy'))
+                            
+                            if content_result.get('engagement_tactics'):
+                                st.markdown("**Engagement Tactics:**")
+                                st.write(content_result.get('engagement_tactics', ''))
                         
                         with col2:
                             st.markdown("**Trending Elements:**")
                             st.write(content_result.get('trending_topics', 'General trending topics'))
+                            
+                            if content_result.get('cultural_insights'):
+                                st.markdown("**Cultural Insights:**")
+                                st.write(content_result.get('cultural_insights', ''))
+                        
+                        # Show platform best practices
+                        if helpers:
+                            with st.expander("📱 Platform Best Practices"):
+                                practices = helpers['optimizer'].get_platform_best_practices(platform)
+                                for key, value in practices.items():
+                                    st.write(f"**{key.replace('_', ' ').title()}:** {value}")
                         
                     except Exception as e:
                         st.error(f"DSPy generation failed: {str(e)}")
                         # Fallback to simple generation
-                        create_simple_content(profile, platform, content_type, language, topic)
+                        create_simple_content(profile, platform, content_type, language, topic, helpers)
                 else:
                     # Simple content generation
-                    create_simple_content(profile, platform, content_type, language, topic)
+                    create_simple_content(profile, platform, content_type, language, topic, helpers)
 
 
-def create_simple_content(profile, platform, content_type, language, topic):
-    """Fallback simple content creation"""
+def create_simple_content(profile, platform, content_type, language, topic, helpers=None):
+    """Fallback simple content creation with utility enhancements"""
     
     expertise = profile['expertise_areas'][0] if profile['expertise_areas'] else "Personal Development"
     name = profile['name']
@@ -463,28 +540,52 @@ def create_simple_content(profile, platform, content_type, language, topic):
         content_text = f"{en_content}\n\n---\n\n{fr_content}"
     
     hashtags = [f"#{expertise.replace(' ', '')}", "#Success", "#Motivation"]
-    if profile.get('cultural_background') == 'cameroon':
-        hashtags.extend(["#CameroonPride", "#AfricanWisdom"])
     
-    content_piece = {
-        "id": f"content_{len(st.session_state.content_pieces) + 1}",
-        "platform": platform,
-        "content_type": content_type,
-        "language": language,
-        "text": content_text,
-        "hashtags": hashtags,
-        "call_to_action": "Share your thoughts in the comments!",
-        "topic": topic or "Simple Content",
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "trend_based": False
-    }
+    # Use utilities if available
+    if helpers:
+        # Add cultural hashtags using utility
+        hashtags = helpers['formatter'].add_cultural_hashtags(
+            hashtags, profile.get('cultural_background', 'cameroon'), language
+        )
+        
+        # Optimize for platform
+        hashtags = helpers['optimizer'].optimize_hashtags_for_platform(hashtags, platform)
+        
+        # Format content piece using utility
+        content_piece = helpers['formatter'].format_content_piece({
+            "platform": platform,
+            "content_type": content_type,
+            "language": language,
+            "text": content_text,
+            "hashtags": hashtags,
+            "call_to_action": "Share your thoughts in the comments!",
+            "topic": topic or "Simple Content",
+            "trend_based": False
+        })
+    else:
+        # Fallback formatting
+        if profile.get('cultural_background') == 'cameroon':
+            hashtags.extend(["#CameroonPride", "#AfricanWisdom"])
+        
+        content_piece = {
+            "id": f"content_{len(st.session_state.content_pieces) + 1}",
+            "platform": platform,
+            "content_type": content_type,
+            "language": language,
+            "text": content_text,
+            "hashtags": hashtags,
+            "call_to_action": "Share your thoughts in the comments!",
+            "topic": topic or "Simple Content",
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "trend_based": False
+        }
     
     st.session_state.content_pieces.append(content_piece)
     st.success("✅ Content created successfully!")
 
 
-def render_trend_analysis(profile, agent):
-    """Render the trend analysis interface"""
+def render_trend_analysis(profile, agent, helpers):
+    """Render the trend analysis interface with DSPy analysis and utility processing"""
     
     st.markdown("## 📈 Real-Time Trend Analysis")
     st.markdown("Powered by Apify for accurate, up-to-date social media insights")
@@ -512,7 +613,35 @@ def render_trend_analysis(profile, agent):
         st.markdown("### 🔥 Trending Topics")
         
         trending_topics = trends.get('trending_topics', [])
-        if trending_topics:
+        
+        # Use utility to filter and process trends
+        if helpers and trending_topics:
+            # Filter relevant trends using utility
+            relevant_trends = helpers['trend_processor'].filter_relevant_trends(
+                trending_topics, profile, min_relevance=1.0
+            )
+            
+            for i, topic in enumerate(relevant_trends[:5], 1):
+                with st.expander(f"{i}. {topic.get('topic', 'Unknown Topic')} ({topic.get('platform', 'general')})"):
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        st.metric("Engagement Score", f"{topic.get('engagement_score', 0):.1f}%")
+                    
+                    with col2:
+                        st.metric("Relevance Score", f"{topic.get('relevance_score', 0):.1f}/10")
+                    
+                    with col3:
+                        if st.button(f"Create Content", key=f"create_{i}"):
+                            # Pre-fill content creation with this topic
+                            st.session_state.suggested_topic = topic.get('topic', '')
+                            st.info(f"💡 Topic '{topic.get('topic', '')}' saved! Go to Create Content to use it.")
+                    
+                    # Show why this trend is relevant
+                    if topic.get('relevance_score', 0) > 5:
+                        st.success(f"🎯 High relevance to your {', '.join(profile.get('expertise_areas', []))} expertise")
+        elif trending_topics:
+            # Fallback display without utility processing
             for i, topic in enumerate(trending_topics[:5], 1):
                 with st.expander(f"{i}. {topic.get('topic', 'Unknown Topic')} ({topic.get('platform', 'general')})"):
                     col1, col2 = st.columns(2)
@@ -524,9 +653,8 @@ def render_trend_analysis(profile, agent):
                         st.metric("Relevance Score", f"{topic.get('relevance_score', 0):.1f}/10")
                     
                     if st.button(f"Create Content About This", key=f"create_{i}"):
-                        # Pre-fill content creation with this topic
                         st.session_state.suggested_topic = topic.get('topic', '')
-                        st.info(f"💡 Topic '{topic.get('topic', '')}' saved! Go to Create Content to use it.")
+                        st.info(f"💡 Topic '{topic.get('topic', '')}' saved!")
         
         # Content Opportunities
         st.markdown("### 💡 Content Opportunities")

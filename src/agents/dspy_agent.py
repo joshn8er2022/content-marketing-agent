@@ -1,5 +1,6 @@
 """
-DSPy-powered Content Marketing Agent with real trend analysis
+DSPy-powered Content Marketing Agent - Optimized Architecture
+40-50% DSPy usage focusing on AI-heavy operations
 """
 
 import dspy
@@ -9,18 +10,66 @@ import json
 from datetime import datetime
 import streamlit as st
 
-# DSPy Signatures for the agent
+# Core DSPy Signatures - AI-Heavy Operations Only
 class TrendAnalyzer(dspy.Signature):
-    """Analyze current social media trends and identify content opportunities"""
+    """Analyze social media trends and identify content opportunities"""
     
-    user_interests: str = dspy.InputField(desc="User's expertise areas and interests")
-    cultural_context: str = dspy.InputField(desc="Cultural background (e.g., Cameroonian, bilingual)")
-    platform: str = dspy.InputField(desc="Target social media platform")
+    user_profile: str = dspy.InputField(desc="User expertise, interests, and cultural context")
     raw_trend_data: str = dspy.InputField(desc="Raw trend data from social media platforms")
+    platform_focus: str = dspy.InputField(desc="Primary social media platforms to analyze")
     
-    trending_topics: str = dspy.OutputField(desc="Top 5 trending topics relevant to user")
-    content_opportunities: str = dspy.OutputField(desc="Specific content ideas with high engagement potential")
-    optimal_timing: str = dspy.OutputField(desc="Best posting times and frequency recommendations")
+    trending_topics: str = dspy.OutputField(desc="Top 5 trending topics with relevance scores")
+    content_opportunities: str = dspy.OutputField(desc="Specific content ideas with engagement predictions")
+    cultural_insights: str = dspy.OutputField(desc="Cultural adaptation recommendations")
+
+
+class ContentStrategist(dspy.Signature):
+    """Generate comprehensive content strategy based on trends and user goals"""
+    
+    user_goals: str = dspy.InputField(desc="Business goals, target audience, and brand positioning")
+    trending_insights: str = dspy.InputField(desc="Current trending topics and opportunities")
+    content_type: str = dspy.InputField(desc="Desired content type and platform specifications")
+    
+    content_strategy: str = dspy.OutputField(desc="Detailed content strategy with hooks and messaging")
+    engagement_tactics: str = dspy.OutputField(desc="Specific tactics to maximize engagement")
+    success_metrics: str = dspy.OutputField(desc="Expected outcomes and KPIs")
+
+
+class BilingualContentCreator(dspy.Signature):
+    """Create engaging bilingual content optimized for cultural context"""
+    
+    strategy_brief: str = dspy.InputField(desc="Content strategy and key messaging points")
+    language_requirements: str = dspy.InputField(desc="Language preferences and cultural context")
+    platform_specs: str = dspy.InputField(desc="Platform requirements and best practices")
+    trending_elements: str = dspy.InputField(desc="Trending hashtags, topics, or formats to incorporate")
+    
+    primary_content: str = dspy.OutputField(desc="Main content text optimized for engagement")
+    secondary_content: str = dspy.OutputField(desc="Alternative language version if bilingual")
+    hashtags_and_cta: str = dspy.OutputField(desc="Optimized hashtags and call-to-action")
+
+
+class ConversationManager(dspy.Signature):
+    """Manage intelligent conversations about content marketing strategy"""
+    
+    user_query: str = dspy.InputField(desc="User's question or request for assistance")
+    conversation_context: str = dspy.InputField(desc="Previous conversation history and user profile")
+    current_trends: str = dspy.InputField(desc="Latest trend data and content opportunities")
+    
+    response: str = dspy.OutputField(desc="Helpful, actionable response with specific recommendations")
+    follow_up_questions: str = dspy.OutputField(desc="Suggested follow-up questions to deepen engagement")
+    action_items: str = dspy.OutputField(desc="Specific next steps the user can take")
+
+
+class ContentOptimizer(dspy.Signature):
+    """Optimize existing content for better performance"""
+    
+    original_content: str = dspy.InputField(desc="Content to be optimized")
+    performance_goals: str = dspy.InputField(desc="Desired improvements and target metrics")
+    platform_context: str = dspy.InputField(desc="Platform-specific optimization requirements")
+    
+    optimized_content: str = dspy.OutputField(desc="Improved content with better engagement potential")
+    optimization_rationale: str = dspy.OutputField(desc="Explanation of changes made and expected impact")
+    ab_test_suggestions: str = dspy.OutputField(desc="Alternative versions for A/B testing")
 
 
 class ContentStrategist(dspy.Signature):
@@ -62,7 +111,7 @@ class ChatAssistant(dspy.Signature):
 
 
 class DSPyContentAgent:
-    """Main DSPy-powered content marketing agent"""
+    """Optimized DSPy-powered content marketing agent"""
     
     def __init__(self):
         # Initialize DSPy with OpenAI
@@ -70,15 +119,17 @@ class DSPyContentAgent:
         if openai_key:
             dspy.settings.configure(lm=dspy.OpenAI(model="gpt-3.5-turbo", api_key=openai_key))
         
-        # Initialize DSPy modules
+        # Initialize DSPy modules for AI-heavy operations only
         self.trend_analyzer = dspy.ChainOfThought(TrendAnalyzer)
         self.content_strategist = dspy.ChainOfThought(ContentStrategist)
         self.content_creator = dspy.ChainOfThought(BilingualContentCreator)
-        self.chat_assistant = dspy.ChainOfThought(ChatAssistant)
+        self.conversation_manager = dspy.ChainOfThought(ConversationManager)
+        self.content_optimizer = dspy.ChainOfThought(ContentOptimizer)
         
-        # Cache for trends to avoid repeated API calls
+        # Simple Python for utilities and caching
         self.trends_cache = {}
         self.cache_timestamp = None
+        self.conversation_cache = []
     
     def _get_api_key(self, key_name: str) -> str:
         """Get API key from Streamlit secrets or environment"""
@@ -174,72 +225,143 @@ class DSPyContentAgent:
         language: str,
         topic: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Generate content using real trend analysis"""
+        """Generate content using DSPy pipeline with trend analysis"""
         
         try:
-            # Get current trends
+            # Step 1: Get trend data (simple Python utility)
             trend_data = await self.analyze_trends_with_apify(user_profile)
             
-            # Prepare inputs for DSPy
-            user_interests = ", ".join(user_profile.get('expertise_areas', []))
-            cultural_context = f"{user_profile.get('cultural_background', 'cameroon')}, {language}"
+            # Step 2: DSPy Trend Analysis
+            user_profile_str = self._format_user_profile(user_profile)
+            trend_data_str = self._format_trend_data(trend_data)
+            platform_focus = ", ".join(user_profile.get('active_platforms', [platform]))
             
-            # Convert trend data to string for DSPy
-            trending_topics_str = json.dumps(trend_data.get('trending_topics', [])[:3], indent=2)
-            
-            # Step 1: Analyze trends
             trend_analysis = self.trend_analyzer(
-                user_interests=user_interests,
-                cultural_context=cultural_context,
-                platform=platform,
-                raw_trend_data=trending_topics_str
+                user_profile=user_profile_str,
+                raw_trend_data=trend_data_str,
+                platform_focus=platform_focus
             )
             
-            # Step 2: Create content strategy
-            user_profile_str = f"""
-            Name: {user_profile.get('name', 'Content Creator')}
-            Brand: {user_profile.get('brand_name', 'Personal Brand')}
-            Expertise: {user_interests}
-            Cultural Background: {user_profile.get('cultural_background', 'cameroon')}
-            Target Audience: Professionals interested in {user_interests}
-            """
+            # Step 3: DSPy Content Strategy
+            user_goals = self._format_user_goals(user_profile, content_type)
             
             strategy = self.content_strategist(
-                user_profile=user_profile_str,
-                trending_topics=trend_analysis.trending_topics,
-                content_type=content_type,
-                platform=platform
+                user_goals=user_goals,
+                trending_insights=trend_analysis.trending_topics,
+                content_type=f"{content_type} for {platform}"
             )
             
-            # Step 3: Create content
-            trending_elements = f"""
-            Trending Topics: {trend_analysis.trending_topics}
-            Content Opportunities: {trend_analysis.content_opportunities}
-            Optimal Timing: {trend_analysis.optimal_timing}
-            """
+            # Step 4: DSPy Content Creation
+            language_requirements = self._format_language_requirements(language, user_profile)
+            platform_specs = self._get_platform_specs(platform)
+            trending_elements = self._format_trending_elements(trend_analysis)
             
             content = self.content_creator(
-                content_strategy=strategy.content_strategy,
-                language=language,
-                platform=platform,
-                cultural_context=cultural_context,
+                strategy_brief=strategy.content_strategy,
+                language_requirements=language_requirements,
+                platform_specs=platform_specs,
                 trending_elements=trending_elements
             )
             
-            return {
-                "content_text": content.content_text,
-                "hashtags": content.hashtags.split() if content.hashtags else [],
-                "call_to_action": content.call_to_action,
-                "strategy": strategy.content_strategy,
-                "trending_topics": trend_analysis.trending_topics,
-                "optimal_timing": trend_analysis.optimal_timing,
-                "trend_data": trend_data
-            }
+            # Step 5: Parse and format results (simple Python)
+            return self._format_content_result(content, strategy, trend_analysis, trend_data)
             
         except Exception as e:
-            st.error(f"Error generating content: {str(e)}")
-            # Fallback to simple content generation
+            st.error(f"DSPy content generation failed: {str(e)}")
             return self._generate_fallback_content(user_profile, platform, content_type, language, topic)
+    
+    def _format_user_profile(self, user_profile: Dict) -> str:
+        """Simple utility to format user profile for DSPy"""
+        return f"""
+        Name: {user_profile.get('name', 'Content Creator')}
+        Brand: {user_profile.get('brand_name', 'Personal Brand')}
+        Expertise: {', '.join(user_profile.get('expertise_areas', []))}
+        Cultural Background: {user_profile.get('cultural_background', 'cameroon')}
+        Primary Language: {user_profile.get('primary_language', 'en')}
+        Active Platforms: {', '.join(user_profile.get('active_platforms', []))}
+        """
+    
+    def _format_trend_data(self, trend_data: Dict) -> str:
+        """Simple utility to format trend data for DSPy"""
+        trending_topics = trend_data.get('trending_topics', [])[:5]
+        return json.dumps({
+            'trending_topics': trending_topics,
+            'content_opportunities': trend_data.get('content_opportunities', [])[:3],
+            'data_sources': trend_data.get('data_sources', {})
+        }, indent=2)
+    
+    def _format_user_goals(self, user_profile: Dict, content_type: str) -> str:
+        """Simple utility to format user goals for DSPy"""
+        return f"""
+        Content Type: {content_type}
+        Business Goals: Lead generation and brand awareness
+        Target Audience: {user_profile.get('cultural_background', 'cameroon')} professionals interested in {', '.join(user_profile.get('expertise_areas', []))}
+        Brand Voice: Professional yet authentic, culturally aware
+        Success Metrics: Engagement, shares, comments, lead generation
+        """
+    
+    def _format_language_requirements(self, language: str, user_profile: Dict) -> str:
+        """Simple utility to format language requirements for DSPy"""
+        cultural_bg = user_profile.get('cultural_background', 'cameroon')
+        return f"""
+        Primary Language: {language}
+        Cultural Context: {cultural_bg}
+        Tone: Professional yet warm and authentic
+        Cultural Adaptation: Include relevant cultural references and values
+        Bilingual: {'Yes' if language == 'bilingual' else 'No'}
+        """
+    
+    def _get_platform_specs(self, platform: str) -> str:
+        """Simple utility to get platform specifications"""
+        specs = {
+            "instagram": "Visual-first, 1-3 sentences, engaging hooks, 5-10 hashtags, stories-friendly",
+            "tiktok": "Short-form video script, trending sounds, quick hooks, viral potential",
+            "linkedin": "Professional tone, thought leadership, longer form, industry insights",
+            "facebook": "Community-focused, shareable, conversation starters, family-friendly",
+            "youtube": "Educational or entertaining, longer form, clear value proposition"
+        }
+        return specs.get(platform, "General social media best practices")
+    
+    def _format_trending_elements(self, trend_analysis) -> str:
+        """Simple utility to format trending elements for DSPy"""
+        return f"""
+        Trending Topics: {trend_analysis.trending_topics}
+        Content Opportunities: {trend_analysis.content_opportunities}
+        Cultural Insights: {trend_analysis.cultural_insights}
+        """
+    
+    def _format_content_result(self, content, strategy, trend_analysis, trend_data) -> Dict[str, Any]:
+        """Simple utility to format final content result"""
+        
+        # Parse hashtags from content
+        hashtags = self._extract_hashtags(content.hashtags_and_cta)
+        cta = self._extract_cta(content.hashtags_and_cta)
+        
+        return {
+            "content_text": content.primary_content,
+            "secondary_content": content.secondary_content if content.secondary_content else None,
+            "hashtags": hashtags,
+            "call_to_action": cta,
+            "strategy": strategy.content_strategy,
+            "engagement_tactics": strategy.engagement_tactics,
+            "trending_topics": trend_analysis.trending_topics,
+            "cultural_insights": trend_analysis.cultural_insights,
+            "trend_data": trend_data
+        }
+    
+    def _extract_hashtags(self, hashtags_and_cta: str) -> List[str]:
+        """Simple utility to extract hashtags"""
+        import re
+        hashtags = re.findall(r'#\w+', hashtags_and_cta)
+        return hashtags[:10]  # Limit to 10 hashtags
+    
+    def _extract_cta(self, hashtags_and_cta: str) -> str:
+        """Simple utility to extract call-to-action"""
+        lines = hashtags_and_cta.split('\n')
+        for line in lines:
+            if not line.startswith('#') and len(line.strip()) > 10:
+                return line.strip()
+        return "Share your thoughts in the comments!"
     
     def _generate_fallback_content(
         self, 
@@ -283,38 +405,133 @@ class DSPyContentAgent:
         user_profile: Dict, 
         conversation_history: List[Dict]
     ) -> str:
-        """Generate chat response using DSPy"""
+        """Generate intelligent chat response using DSPy conversation management"""
         
         try:
-            # Get current trends for context
+            # Get current trends (simple utility)
             trend_data = await self.analyze_trends_with_apify(user_profile)
             
-            # Prepare context
-            user_context = f"""
-            User Profile:
-            - Name: {user_profile.get('name', 'User')}
-            - Expertise: {', '.join(user_profile.get('expertise_areas', []))}
-            - Platforms: {', '.join(user_profile.get('active_platforms', []))}
-            - Cultural Background: {user_profile.get('cultural_background', 'cameroon')}
+            # Format context for DSPy (simple utilities)
+            conversation_context = self._format_conversation_context(user_profile, conversation_history)
+            current_trends = self._format_trends_for_chat(trend_data)
             
-            Recent Conversation:
-            {json.dumps(conversation_history[-3:], indent=2) if conversation_history else 'No previous conversation'}
-            """
-            
-            current_trends = json.dumps(trend_data.get('trending_topics', [])[:3], indent=2)
-            
-            # Generate response
-            response = self.chat_assistant(
-                user_message=user_message,
-                user_context=user_context,
+            # DSPy Conversation Management
+            response = self.conversation_manager(
+                user_query=user_message,
+                conversation_context=conversation_context,
                 current_trends=current_trends
             )
             
-            return f"{response.response}\n\n**Suggested Actions:**\n{response.suggested_actions}"
+            # Format response (simple utility)
+            return self._format_chat_response(response)
             
         except Exception as e:
-            # Fallback response
-            return f"I understand you're asking about: {user_message}\n\nBased on your expertise in {', '.join(user_profile.get('expertise_areas', ['personal development']))}, I'd recommend focusing on creating authentic content that showcases your knowledge while connecting with your audience's needs.\n\nWould you like me to help you create some content around this topic?"
+            # Simple fallback
+            return self._generate_fallback_chat_response(user_message, user_profile)
+    
+    def _format_conversation_context(self, user_profile: Dict, conversation_history: List[Dict]) -> str:
+        """Simple utility to format conversation context"""
+        context = f"""
+        User Profile:
+        - Name: {user_profile.get('name', 'User')}
+        - Expertise: {', '.join(user_profile.get('expertise_areas', []))}
+        - Platforms: {', '.join(user_profile.get('active_platforms', []))}
+        - Cultural Background: {user_profile.get('cultural_background', 'cameroon')}
+        - Primary Language: {user_profile.get('primary_language', 'en')}
+        
+        Recent Conversation:
+        """
+        
+        # Add last 3 messages for context
+        recent_messages = conversation_history[-3:] if conversation_history else []
+        for msg in recent_messages:
+            context += f"- {msg.get('role', 'unknown')}: {msg.get('content', '')[:100]}...\n"
+        
+        return context
+    
+    def _format_trends_for_chat(self, trend_data: Dict) -> str:
+        """Simple utility to format trends for chat context"""
+        trending_topics = trend_data.get('trending_topics', [])[:3]
+        opportunities = trend_data.get('content_opportunities', [])[:2]
+        
+        trends_summary = "Current Trending Topics:\n"
+        for topic in trending_topics:
+            trends_summary += f"- {topic.get('topic', 'Unknown')}: {topic.get('engagement_score', 0):.1f}% engagement\n"
+        
+        trends_summary += "\nContent Opportunities:\n"
+        for opp in opportunities:
+            trends_summary += f"- {opp.get('topic', 'Unknown')}: {opp.get('engagement_potential', 0):.1f}% potential\n"
+        
+        return trends_summary
+    
+    def _format_chat_response(self, response) -> str:
+        """Simple utility to format chat response"""
+        formatted_response = response.response
+        
+        if response.follow_up_questions and response.follow_up_questions.strip():
+            formatted_response += f"\n\n**💡 Follow-up Questions:**\n{response.follow_up_questions}"
+        
+        if response.action_items and response.action_items.strip():
+            formatted_response += f"\n\n**🎯 Action Items:**\n{response.action_items}"
+        
+        return formatted_response
+    
+    def _generate_fallback_chat_response(self, user_message: str, user_profile: Dict) -> str:
+        """Simple fallback chat response"""
+        expertise = ', '.join(user_profile.get('expertise_areas', ['personal development']))
+        
+        return f"""I understand you're asking about: "{user_message}"
+
+Based on your expertise in {expertise}, here are some thoughts:
+
+💡 **Quick Suggestion:** Focus on creating authentic content that showcases your knowledge while connecting with your audience's needs.
+
+🎯 **Next Steps:**
+- Consider creating educational content around this topic
+- Share your personal experience or client success stories
+- Engage with your audience by asking questions
+
+Would you like me to help you create some content around this topic?"""
+    
+    async def optimize_content(
+        self, 
+        original_content: str, 
+        performance_goals: str,
+        platform: str,
+        user_profile: Dict
+    ) -> Dict[str, Any]:
+        """Optimize existing content using DSPy"""
+        
+        try:
+            # Format inputs for DSPy
+            platform_context = f"""
+            Platform: {platform}
+            Platform Specs: {self._get_platform_specs(platform)}
+            User Profile: {self._format_user_profile(user_profile)}
+            """
+            
+            # DSPy Content Optimization
+            optimization = self.content_optimizer(
+                original_content=original_content,
+                performance_goals=performance_goals,
+                platform_context=platform_context
+            )
+            
+            return {
+                "optimized_content": optimization.optimized_content,
+                "optimization_rationale": optimization.optimization_rationale,
+                "ab_test_suggestions": optimization.ab_test_suggestions,
+                "original_content": original_content
+            }
+            
+        except Exception as e:
+            # Simple fallback optimization
+            return {
+                "optimized_content": original_content,
+                "optimization_rationale": f"Unable to optimize due to: {str(e)}",
+                "ab_test_suggestions": "Try different hooks, hashtags, or call-to-actions",
+                "original_content": original_content
+            }
     
     def get_trend_summary(self, trend_data: Dict) -> str:
         """Get a formatted summary of current trends"""
