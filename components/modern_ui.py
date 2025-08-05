@@ -71,71 +71,80 @@ def render_modern_card(title: str, content: str, icon: str = "🎯", accent_colo
                       action_text: str = None, key: str = None):
     """Modern card component inspired by 21st.dev"""
     
-    card_id = key or f"card_{hash(title)}"
-    action_button = ""
+    # Create a container for the card
+    card_container = st.container()
     
-    if action_text:
-        action_button = f"""
-        <button style="
-            background: {accent_color};
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
+    with card_container:
+        # Use Streamlit's native components with custom CSS
+        st.markdown(f"""
+        <div class="modern-card" style="
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.05);
             transition: all 0.3s ease;
-            margin-top: 1rem;
-        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)'"
-           onmouseout="this.style.transform='translateY(0px)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.1)'"
-        >{action_text}</button>
-        """
-    
-    st.markdown(f"""
-    <div style="
-        background: white;
-        border-radius: 16px;
-        padding: 2rem;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        border: 1px solid rgba(0,0,0,0.05);
-        transition: all 0.3s ease;
-        height: 100%;
-        position: relative;
-        overflow: hidden;
-    " onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 20px 40px rgba(0,0,0,0.15)'"
-       onmouseout="this.style.transform='translateY(0px)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.1)'"
-    >
-        <div style="
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: {accent_color};
-        "></div>
-        
-        <div style="
-            font-size: 2.5rem;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
             margin-bottom: 1rem;
-        ">{icon}</div>
+        ">
+            <div style="
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 4px;
+                background: {accent_color};
+            "></div>
+            
+            <div style="
+                font-size: 2.5rem;
+                margin-bottom: 1rem;
+                text-align: center;
+            ">{icon}</div>
+            
+            <h3 style="
+                color: #1a1a1a;
+                font-size: 1.5rem;
+                font-weight: 700;
+                margin-bottom: 1rem;
+                line-height: 1.3;
+                text-align: center;
+            ">{title}</h3>
+            
+            <p style="
+                color: #666;
+                line-height: 1.6;
+                margin-bottom: 1rem;
+                text-align: center;
+            ">{content}</p>
+        </div>
         
-        <h3 style="
-            color: #1a1a1a;
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            line-height: 1.3;
-        ">{title}</h3>
+        <style>
+        .modern-card:hover {{
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }}
+        </style>
+        """, unsafe_allow_html=True)
         
-        <p style="
-            color: #666;
-            line-height: 1.6;
-            margin-bottom: 1rem;
-        ">{content}</p>
-        
-        {action_button}
-    </div>
-    """, unsafe_allow_html=True)
+        # Add action button if specified
+        if action_text:
+            st.markdown(f"""
+            <div style="text-align: center; margin-top: -1rem; margin-bottom: 1rem;">
+                <button style="
+                    background: {accent_color};
+                    color: white;
+                    border: none;
+                    padding: 0.75rem 1.5rem;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                ">{action_text}</button>
+            </div>
+            """, unsafe_allow_html=True)
 
 def render_modern_stats(stats: List[Dict[str, Any]], title: str = "Key Metrics"):
     """Modern stats display inspired by 21st.dev"""
@@ -313,14 +322,59 @@ def render_modern_feature_grid(features: List[Dict[str, Any]], title: str = "Fea
         
         for i, feature in enumerate(row):
             with cols[i]:
-                render_modern_card(
-                    title=feature['title'],
-                    content=feature['description'],
-                    icon=feature.get('icon', '🎯'),
-                    accent_color=feature.get('color', '#667eea'),
-                    action_text=feature.get('action_text'),
-                    key=f"feature_{feature['title']}"
-                )
+                # Use direct HTML rendering instead of calling render_modern_card
+                accent_color = feature.get('color', '#667eea')
+                icon = feature.get('icon', '🎯')
+                title_text = feature['title']
+                content_text = feature['description']
+                
+                st.markdown(f"""
+                <div style="
+                    background: white;
+                    border-radius: 16px;
+                    padding: 2rem;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                    border: 1px solid rgba(0,0,0,0.05);
+                    transition: all 0.3s ease;
+                    height: 100%;
+                    position: relative;
+                    overflow: hidden;
+                    margin-bottom: 1rem;
+                " onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 20px 40px rgba(0,0,0,0.15)'"
+                   onmouseout="this.style.transform='translateY(0px)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.1)'"
+                >
+                    <div style="
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 4px;
+                        background: {accent_color};
+                    "></div>
+                    
+                    <div style="
+                        font-size: 2.5rem;
+                        margin-bottom: 1rem;
+                        text-align: center;
+                    ">{icon}</div>
+                    
+                    <h3 style="
+                        color: #1a1a1a;
+                        font-size: 1.5rem;
+                        font-weight: 700;
+                        margin-bottom: 1rem;
+                        line-height: 1.3;
+                        text-align: center;
+                    ">{title_text}</h3>
+                    
+                    <p style="
+                        color: #666;
+                        line-height: 1.6;
+                        margin-bottom: 1rem;
+                        text-align: center;
+                    ">{content_text}</p>
+                </div>
+                """, unsafe_allow_html=True)
 
 def render_modern_form(form_config: Dict[str, Any], form_key: str = "modern_form"):
     """Modern form component inspired by 21st.dev"""

@@ -20,13 +20,26 @@ sys.path.insert(0, str(src_path))
 components_path = Path(__file__).parent / "components"
 sys.path.insert(0, str(components_path))
 
-# Import modern UI components
-from modern_ui import (
-    render_modern_hero, render_modern_card, render_modern_stats,
-    render_modern_chat_interface, render_modern_feature_grid,
-    render_modern_form, render_modern_sidebar, render_modern_alert,
-    add_modern_css
-)
+# Import modern UI components (with fixed versions as fallback)
+try:
+    from modern_ui_fixed import (
+        render_modern_hero_fixed as render_modern_hero,
+        render_modern_card_fixed as render_modern_card,
+        render_modern_stats_fixed as render_modern_stats,
+        render_modern_chat_interface_fixed as render_modern_chat_interface,
+        render_modern_feature_grid_fixed as render_modern_feature_grid,
+        render_modern_alert_fixed as render_modern_alert,
+        add_modern_css_fixed as add_modern_css
+    )
+    # Keep the original functions that don't have fixed versions
+    from modern_ui import render_modern_form, render_modern_sidebar
+except ImportError:
+    from modern_ui import (
+        render_modern_hero, render_modern_card, render_modern_stats,
+        render_modern_chat_interface, render_modern_feature_grid,
+        render_modern_form, render_modern_sidebar, render_modern_alert,
+        add_modern_css
+    )
 
 # For Streamlit Cloud deployment, get API keys from secrets
 def get_api_key(key_name):
